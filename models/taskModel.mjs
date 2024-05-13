@@ -1,4 +1,4 @@
-import {Schema, model} from "mongoose";
+import mongoose, {Schema, model} from "mongoose";
 import { nanoid } from "nanoid";
 
 const paramSchema = Schema({
@@ -32,6 +32,10 @@ const selectorSchema = Schema({
 })
 
 const taskSchema = Schema({
+    name:{
+        type:String,
+        required:true
+    },
     url:{
         type:String,
         required:true
@@ -56,7 +60,40 @@ const taskSchema = Schema({
         type:String,
         required:true,
         default:()=>nanoid()
+    },
+
+    lastUsed:{
+        type:Date,
+        default:()=>null
+    },
+
+    active:{
+        type:Boolean,
+        required:true,
+        default:()=>true
+    },
+
+    lastModified:Date,
+    timesModified:{
+        type:Number,
+        required:true,
+        default:()=>0
+    },
+
+    timesUsed:{
+        type:Number,
+        required:true,
+        default:0
+    },
+    dateCreated:{
+        type:Date,
+        required:true,
+        default:()=>Date.now()
+    },
+    createdBy:{
+        type:mongoose.Types.ObjectId,
+        required:true
     }
 })
 
-export const taskModel = model('Task-Model', taskSchema)
+export const TaskModel = model('Task', taskSchema)

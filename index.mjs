@@ -6,116 +6,35 @@ import { addExtra } from 'puppeteer-extra';
 import vanillaPuppeteer from 'puppeteer'
 import Stealth from 'puppeteer-extra-plugin-stealth'
 import mongoose from 'mongoose';
-import { taskModel } from './models/taskModel.mjs';
-import { taskRunner } from './task-runner/scraper.mjs';
-import taskChecker from './task-runner/taskChecker.mjs';
+import session from 'express-session';
+import { captain } from './routes/captain.mjs';
+
 let cluster;
 
-const LOCAL_ADDRESS = 'http://localhost:3000'
-const NETWORK_ADDRESS = 'http://192.168.0.101:3000'
-
 app.use(express.json())
-app.use(cors())
-
-app.post('/generate-url', async (req, res) => {
-    const msg = taskChecker(req.body.task)
-    if (msg == 'task is valid') {
-        try {
-            const task = await taskModel.create(req.body.task)
-            console.log(task);
-
-            res.send({
-                success: true,
-                data: `${NETWORK_ADDRESS}/run/${task.shortURL}`,
-                message: "Task stored successfully."
-            })
-        } catch (e) {
-            console.log(e);
-            res.send({
-                sucess: false,
-                data: "Some Error Occured",
-                message: "Task Structure is Invalid"
-            })
-        }
-    } else {
-        res.send({
-            sucess: false,
-            data: "Some Error Occured",
-            message: msg
-        })
+app.use(express.urlencoded({extended:true}))
+app.use(cors({
+    origin:true,
+    credentials:true
+}))
+app.use(session({
+    saveUninitialized:true,
+    resave:false,
+    secret:'Very Secret',
+    cookie:{
+        httpOnly:true,
+        maxAge: 1000 * 60 * 60 * 24 * 7
     }
+}))
 
+app.use((req,res,next)=>{
+    req.cluster = cluster
+    next()
 })
 
-app.get('/run/:shorturl', async (req, res) => {
-    try {
-        const task = await taskModel.findOne({ shortURL: req.params.shorturl })
-        for(const param in req.query){
-            if(task.params.has(param)){
-                
-                const oldParam = task.params.get(param)
-                task.params.set(param, 
-                    { name:oldParam.name,
-                        _id:oldParam._id,
-                        value:req.query[param]
-                    }
-                )
-            }
-        }
 
-        const result = await cluster.execute(task, taskRunner)
-        res.send({
-            success: true,
-            data: result,
-            message: "Data Fetched Successfully"
-        })
+app.use(captain)
 
-    } catch (e) {
-        console.log(e);
-        res.send({
-            success: false,
-            data: '',
-            message: e.message
-        })
-    }
-})
-
-app.post('/test-task', async (req, res) => {
-    const { task } = req.body
-    const params = task.params
-    task.params = new Map()
-    for(const param in params){
-        task.params.set(param, {
-            name:params[param].name,
-            value:params[param].value
-        })
-    }
-
-    try {
-        const result = await cluster.execute(task, taskRunner)
-        res.send({
-            success: true,
-            data: result,
-            message: 'Data Fetched successfully'
-        })
-    } catch (e) {
-        console.log(e);
-        res.send({
-            success: false,
-            message: e.message
-        })
-    }
-
-
-})
-
-app.post('/login', (req, res)=>{
-
-})
-
-app.post('/login', (req, res)=>{
-    
-})
 
 app.listen(3000, async () => {
     await startCluster()

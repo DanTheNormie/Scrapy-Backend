@@ -79,7 +79,7 @@ const scrapeSelectorsIndividually = async (page, selectors) => {
                     result = element.getAttribute(target)
                 }
 
-                if (!result || result == '' || result.length < 1) {
+                if (!result || result == '' || result.length < 1 || result == null) {
                     result = 'No Data Found'
                 }
             } else {
